@@ -1,0 +1,97 @@
+-- Write a query to find the total application, total loan, and disbursed rate per month.
+WITH
+  app_loan AS 
+  (
+    SELECT 
+      COUNT (DISTINCT t1.applications_id) as total_application,
+      COUNT (DISTINCT t2.loan_id) as total_loan,
+      DATE_TRUNC(DATE(t1.created_date), MONTH) as month
+    FROM `da-labs-b4-fintech.b4_fintech_dataset.applications` t1
+    LEFT JOIN `da-labs-b4-fintech.b4_fintech_dataset.loans` t2
+    ON t1.applications_id = t2.application_id
+    GROUP BY 3
+    ORDER BY 3 DESC    
+  )
+SELECT 
+  app_loan.total_application,
+  app_loan.total_loan,
+  app_loan.month,
+  ROUND(app_loan.total_loan/app_loan.total_application,2) dibursed_rate
+FROM app_loan
+ORDER BY 3
+
+-- Write a query to show monthly paid and due amount growth in 2020 (based on due_timestamp). Which of the following statements is true regarding the result of the query?
+
+WITH
+  t1 AS
+  (
+    SELECT
+      DATE_TRUNC(DATE(due_timestamp), Month) as due_timestamp_monthly,
+      SUM(paid_amount) as total_paid,
+      SUM(due_amount) as total_due
+    FROM `da-labs-b4-fintech.b4_fintech_dataset.payments`
+    WHERE DATE(due_timestamp) >=  '2022-01-01'
+    AND DATE(due_timestamp) <= '2022-12-31'
+    GROUP BY 1
+    ORDER BY 1
+  )
+SELECT 
+  due_timestamp_monthly,
+  total_paid - LAG(total_paid) OVER (ORDER BY due_timestamp_monthly ASC) as paid_amount_growth,
+  total_due - LAG(total_due) OVER (ORDER BY due_timestamp_monthly ASC) as due_amount_growth,
+  ROUND((total_paid - LAG(total_paid) OVER (ORDER BY due_timestamp_monthly ASC))/LAG(total_paid) OVER (ORDER BY due_timestamp_monthly ASC),2) as paid_amount_percentage,
+  ROUND((total_due - LAG(total_due) OVER (ORDER BY due_timestamp_monthly ASC))/LAG(total_due) OVER (ORDER BY due_timestamp_monthly ASC),2) as due_amount_percentage
+FROM t1
+ORDER BY 1
+
+-- Write a query to show the loan_id, due amount, pricipal amount, and DPD (days past due) the loan that is categorized as 6th bucket when the target date is 01 December 2022. Sort by the highest due amount. Which of the following statements is true regarding the result of the query.
+  data_due_amount AS 
+  (
+    SELECT
+      DISTINCT loan_id,
+      due_amount,
+      principal_amount, 
+      payment_status_code,
+      due_timestamp,
+      (DATE_DIFF(DATE'2022-12-01', DATE(due_timestamp), DAY)) as date_difference
+    FROM `da-labs-b4-fintech.b4_fintech_dataset.payments`
+    WHERE DATE(due_timestamp) <= '2022-12-01'
+    AND payment_status_code = 420
+    GROUP BY 1,2,3,4,5
+    ORDER BY 2
+  ),
+  minimum_paymentdue_perloanid AS
+  (
+   SELECT * FROM
+     (SELECT *, row_number() over(partition by loan_id order by due_timestamp) as rn_minimum_payment_due
+     FROM data_due_amount)
+     WHERE rn_minimum_payment_due=1
+  ),
+  bucket_detail AS
+  (
+     SELECT *,
+     (CASE
+     WHEN date_difference= 0 THEN 'Todays Bucket'
+     WHEN date_difference<= 29 AND date_difference >0 THEN '1st Bucket'
+     WHEN date_difference<= 59 AND date_difference >0 THEN '2nd Bucket'
+     WHEN date_difference<= 89 AND date_difference >0 THEN '3rd Bucket'
+     WHEN date_difference<= 119 AND date_difference >0 THEN '4th Bucket'
+     WHEN date_difference<= 149 AND date_difference >0 THEN '5th Bucket'
+     WHEN date_difference<= 179 AND date_difference >0 THEN '6th Bucket'
+     WHEN date_difference<= 180 AND date_difference >0 THEN 'Failed to pay more than six month Bucket'
+     END) as bucket,
+     FROM minimum_paymentdue_perloanid
+     ORDER BY due_amount DESC
+    )
+
+--Return loan_id per bucket with the highest due_amount
+SELECT * FROM
+( SELECT loan_id, 
+    due_amount, 
+    principal_amount, 
+    date_difference, 
+    bucket, 
+    ROW_NUMBER() OVER(PARTITION BY bucket ORDER BY due_amount DESC) as rn
+    FROM bucket_detail) rank
+    WHERE bucket = '6th Bucket'
+    ORDER BY bucket DESC
