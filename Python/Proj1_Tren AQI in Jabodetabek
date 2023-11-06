@@ -1,0 +1,40 @@
+import pandas as pd
+import numpy as np
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+# Load the CSV data into a DataFrame
+df = pd.read_csv('/content/drive/MyDrive/jabodetabek city 10 mins - Jabodetabek 10 min.csv')
+
+df.dropna(inplace=True)
+
+df.info()
+
+df['Minute of Datetime JKT (minutes)'] = pd.to_datetime(df['Minute of Datetime JKT (minutes)'])
+
+# Membuat plot dengan palet warna kustom
+sns.lineplot(data=df, x="Minute of Datetime JKT (minutes)", y="Avg. AQI")
+plt.xlabel("Minute of Datetime JKT (minutes)")
+plt.ylabel("Avg. AQI")
+plt.title("Trend AQI in Jabodetabek")
+plt.show()
+
+# Membuat plot dengan palet warna kustom
+sns.lineplot(data=df, x="Minute of Datetime JKT (minutes)", y="Avg. PM2,5")
+plt.xlabel("Minute of Datetime JKT (minutes)")
+plt.ylabel("Avg. PM2,5")
+plt.title("Trend PM 2,5 in Jabodetabek")
+plt.show()
+
+# Bar Plot Number of Transaction per Month using SNS
+fig, amount_sns= plt.subplots(figsize=(30,10))
+amount_sns = sns.lineplot(data = df, x= 'Minute of Datetime JKT (minutes)', y='Avg. AQI', color = 'red' , label = 'AQI')
+amount_sns = sns.lineplot(data = df, x= 'Minute of Datetime JKT (minutes)', y='Avg. AQI', color = 'limegreen', label = 'PM 2.5')
+
+# Labelling
+amount_sns.set_xlabel('Minute of Datetime JKT (minutes)')
+amount_sns.set_ylabel('AQI and PM 2.5')
+
+# Title name
+plt.title('Trend AQI vs PM 2.5')
+plt.show()
