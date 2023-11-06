@@ -1,0 +1,378 @@
+# Data Cleaning - EDA/
+import pandas as pd                     
+import numpy as np                      
+from datetime import datetime           
+
+#To show chart
+import seaborn as sns                   
+import matplotlib.pyplot as plt         
+
+# A. CLEANING DATA
+
+
+## A.1. User Dataset
+
+### Import Data
+
+# import dataset from spreadsheet
+sheet_url = 'https://docs.google.com/spreadsheets/d/1dV7Xunv6KI7Kbr0nP1ffn7I_mIms2-9LDCjryNHqWDE/edit#gid=0'
+sheet_url_trf = sheet_url.replace('/edit#gid=', '/export?format=csv&gid=') #to convert spreadsheet format become CSV then collab can import it
+df = pd.read_csv(sheet_url_trf) #define df to read csv
+pd.set_option('display.max.columns',None) #to display all column, not separate)
+df.head() #only show first of 5 rows (not based on shorting etc)
+
+### Data Information
+Column Dictionary:
+- **user_id** = Unique id of user
+- **register_date** = date of user register for the first time
+- **name** = user name
+- **gender** = user gender
+- **province** = user's province location
+- **city** = user's city location
+
+
+df_user = df.copy() #make a copy dataframe so the original dataframe didnt change if we manipulate data in the future
+df_user.info() #show data information
+
+### Handling Missing Values
+
+# Check number of NaN Value in each column
+df_user.isna().sum()
+
+# Because we can not fill the null data in Register_date, name and gender column, so we drop that null value
+df_user.dropna(subset=['register_date','name','gender'], inplace=True)
+df_user.isna().sum()
+
+### Duplicate Values
+
+# check number of duplicated data
+df_user.duplicated().sum()
+
+# drop duplicated value
+df_user.drop_duplicates(inplace=True)
+
+### Handling Outliers
+
+
+df_user.info() #show data information
+
+There are no numeric column so we dont have to handle the outliers
+
+### Convert Data types
+There is only register_date that have wrong data type. It should be datetime
+
+
+#Convert String to Datetime
+df_user['register_date'] = pd.to_datetime(df_user['register_date'])
+
+# Convert Integer value to string
+df_user['user_id'] = df_user['user_id'].astype(str)
+
+# Check data information
+df_user.info()
+
+df_user.head() # only show first of 5 rows
+
+### Handling Typos
+
+
+# make list of unique value in province column to show the unique value
+df_user['province'].unique().tolist()
+
+there are no typos value in province column
+
+# check unique value in city column
+df_user['city'].unique().tolist()
+
+**There is typos:**
+1. South Jakarta = Jakarta Selatan
+2. Central Jakarta =  Jakarta Pusat
+3. surabaya = Surabaya
+
+# Replace typos value
+df_user['city'].replace(to_replace = ['South Jakarta'], value = 'Jakarta Selatan', inplace=True)
+df_user['city'].replace(to_replace = ['Central Jakarta'], value = 'Jakarta Pusat', inplace=True)
+df_user['city'].replace(to_replace = ['surabaya'], value = 'Surabaya', inplace=True)
+df_user['city'].unique().tolist()
+
+## A.2. Transaction Dataset
+
+### Import Data
+
+# import dataset from spreadsheet
+sheet_url = 'https://docs.google.com/spreadsheets/d/1FOvLKlf4tOP8iN8jwahxGFUCYxB2XFB0Ba-1AWhTkig/edit#gid=0'
+sheet_url_trf = sheet_url.replace('/edit#gid=', '/export?format=csv&gid=') #to convert spreadsheet format become CSV then collab can import it
+df = pd.read_csv(sheet_url_trf) #define df to read csv
+pd.set_option('display.max.columns',None) #to display all column, not separate)
+df.head() #only show first of 5 rows (not based on shorting etc)
+
+df_trans = df.copy() #make a copy dataframe so the original dataframe didnt change if we manipulate data in the future
+df_trans.info() #show data information
+
+### Data Information
+Column Dictionary:
+- **event_name** = event name of completed transaction or canceled
+- **transaction-date** = date of user transaction
+- **user_id** = Unique id of user
+- **payment_method_id** = Unique Id of payment method
+- **transaction_id** = Unique Id of transaction
+
+
+### Handling Missing Values
+
+# Chek number of NaN Value
+df_trans.isna().sum()
+
+# Make list of  Unique Value in event name column to show unique value
+df_trans['event_name'].unique().tolist()
+
+# THIS CODE just to make sure NaN Value in the field (Optional)
+
+# df_trans1 = df_trans.copy()
+# df_trans1 = df_trans1[(df_trans1['event_name'].isin(['Cancelled']))]
+# df_trans1
+# # df_trans1 = df_trans1[(df_trans1['event_name'].isin(['Completed']) & df_trans1['transaction-date'].isna())]
+# # df_trans1 = df_trans1[(df_trans1['event_name'].isin(['Cancelled']) & df_trans1['transaction-date'].isna())]
+# df_trans1 = df_trans1[(df_trans1['event_name'].isna())]
+# df_trans1
+# df_trans1 = df_trans1[(df_trans1['transaction-date'].isna())]
+# df_trans1
+
+We drop NaN value because we can substitue it with other value
+
+# make copy of df_trans so can drop NaN value safely
+df_trans_drop = df_trans.copy()
+
+#Drop NaN Value
+df_trans_drop = df_trans_drop.dropna()
+df_trans_drop.info()
+
+### Convert Data types
+There is :
+1. transaction-date should be datetime
+2. payment_method_id and transaction_id could be object[String]
+
+
+ #Convert String to Datetime
+df_trans = df_trans_drop
+
+#make list column
+lst_int = ['payment_method_id','transaction_id']
+
+# Convert String value to datetime, make error running value become NaN value
+df_trans['transaction-date'] = pd.to_datetime(df_trans['transaction-date'], errors='coerce')
+df_trans[lst_int] = df_trans[lst_int].astype(str)
+
+# Check NaN value due to convert function
+df_trans.isna().sum()
+
+# drop NaN Value
+df_trans = df_trans.dropna()
+df_trans.info()
+
+# EXTRA MILES
+# you can maanipulate that NaN data before converting so it can be running witout ERROR
+
+df_trans.head()
+
+### Handling String Manipulation
+
+
+# There are string obstacle, if we dont remove .0 then we can't join these dataset to another dataset because it have different value
+df_trans_id = df_trans['transaction_id'].str.split('.', expand = True)
+df_trans_id.head()
+
+# Combine string manipulation dataset to main dataset
+df_trans['new_transaction_id'] =  df_trans_id[0] #rename column [0] become new_transaction_id column then place it in df_trans (not in df_trans_id anymore)
+df_trans.head()
+
+# There are string obstacle, if we dont remove .0 then we can't join these dataset to another dataset because it have different value
+df_trans_id = df_trans['payment_method_id'].str.split('.', expand = True)
+df_trans_id.head()
+
+# Combine string manipulation dataset to main dataset
+df_trans['payment_id'] =  df_trans_id[0]
+df_trans
+
+# Drop Unused column
+df_trans = df_trans.drop(['payment_method_id','transaction_id'], axis=1)
+df_trans
+
+## A.3. Transaction_items Dataset
+
+### Import Data
+
+# import dataset from spreadsheet
+sheet_url = 'https://docs.google.com/spreadsheets/d/1gLBNZtMWm1pITCk_YI4cZn0PZzrr0ZnYYfqOsM_7wR0/edit#gid=0'
+sheet_url_trf = sheet_url.replace('/edit#gid=', '/export?format=csv&gid=')  #to convert spreadsheet format become CSV then collab can import it
+df_ittrans = pd.read_csv(sheet_url_trf) #define df to read csv
+pd.set_option('display.max.columns',None) #to display all column, not separate)
+df_ittrans.head() #only show first of 5 rows (not based on shorting etc)
+
+### Data Information
+Column Dictionary:
+- **transaction_item_id** = Unique ID of transaction item
+- **transaction_id** = Unique Id of transaction
+- **Event_name** = name of event
+- **product_id** = Unique Id of product
+- **qty** = product's quantity
+- **price** = product price
+- **total_amount** = Total Price of Product
+
+# check data information
+df_ittrans.info()
+
+### Handling Missing Values
+
+# Check number of NaN Value
+df_ittrans.isna().sum()
+
+### Duplicate Values
+
+# Check number of duplicate data
+df_ittrans.duplicated().sum()
+
+### Convert Data types
+
+# make filter list of column that will be converted
+lst_int = ['transaction_item_id','transaction_id','product_id']
+
+# convert integer data type become string/object
+df_ittrans[lst_int] = df_ittrans[lst_int].astype(str)
+
+#check data information
+df_ittrans.info()
+
+### Handling Outliers
+
+# filter numeric column
+numeric_column = ['qty','price','total_amount']
+
+#adjust chart position and chart size
+fig, axes = plt.subplots(nrows=1, ncols=3,figsize=(20,10))
+
+# for 0 (i) , Income (el)
+for i,el in enumerate(numeric_column):
+    a = df_ittrans.boxplot(el, ax=axes.flatten()[i],grid=False)
+
+#Show Chart
+plt.show()
+
+# Find Q1, Q3, IQR
+Q1 = df_ittrans['total_amount'].quantile(0.25)
+Q3 = df_ittrans['total_amount'].quantile(0.75)
+IQR = Q3 - Q1
+
+# Find Bottom Fence and Upper Fence
+boxplot_min = Q1 - 1.5 * IQR
+boxplot_max = Q3 + 1.5 * IQR
+
+#Show the calculation
+print('Q1:\n',Q1)
+print('\nQ3:\n',Q3)
+print('\nIQR:\n',IQR)
+print('\nMin:\n',boxplot_min)
+print('\nMax:\n',boxplot_max)
+
+# Filter value that <Bottom fence and >Upper fence
+filter_payment_min = df_ittrans['total_amount'] < boxplot_min
+filter_payment_max = df_ittrans['total_amount'] > boxplot_max
+
+# drop outlier using loc. So it will show only value exclude (~) bottom fence and Upper fence
+df_non_outlier = df_ittrans.loc[~(filter_payment_min | filter_payment_max)]
+
+# Check data information
+df_non_outlier.info()
+
+# boxplot without outlier
+df_non_outlier.boxplot(column=['total_amount'],fontsize=10,
+           rot=0,grid=False,figsize=(20,5),vert=False)
+
+## A.4. Payment_Method Dataset
+
+### Import Data
+
+# import dataset from spreadsheet
+
+sheet_url = 'https://docs.google.com/spreadsheets/d/1fJ4nuarwyHYaPpkTPrpol3OYlHRrTzdUdwOMvl57CO4/edit#gid=0'
+sheet_url_trf = sheet_url.replace('/edit#gid=', '/export?format=csv&gid=') #to convert spreadsheet format become CSV then collab can import it
+df_pay = pd.read_csv(sheet_url_trf) #define df to read csv
+pd.set_option('display.max.columns',None) #to display all column, not separate)
+df_pay.head() #only show first of 5 rows (not based on shorting etc)
+
+### Data Information
+Column Dictionary:
+- **payment_id** = Unique ID of payment type
+- **payment_method** = name of payment method
+
+
+# check data information
+df_pay.info()
+
+### Convert Data Types
+
+# Convert Integer data type become string / object
+df_pay['payment_id'] = df_pay['payment_id'].astype(str)
+df_pay.info()
+
+# B. MERGE DATA
+
+# Joining data
+merge_1 = df_user.merge(df_trans, how = 'left', on='user_id')
+merge_2 = merge_1.merge(df_non_outlier, how ='inner' , left_on = 'new_transaction_id', right_on='transaction_id')
+merge_3 = merge_2.merge(df_pay, how = 'inner' , on='payment_id')
+merge_3.head() #only show first of 5 rows (not based on shorting etc)
+
+#define new_df as copy of merge 3 so we can manipulate merge_3 safely
+new_df = merge_3.copy()
+
+# Drop Unused Column
+new_df = new_df.drop(['new_transaction_id'], axis=1)
+
+#Check data information
+new_df.info()
+
+# C. EDA
+
+# Define g_trans_df as copy of new_df
+g_trans_df = new_df.copy()
+
+# total qty and total amount per transaction id
+g_trans_df = new_df.groupby(['transaction_id']).sum()
+g_trans_df
+
+# define variable
+new_df2 = new_df.copy()
+
+# # # List drop column
+lst_col = ['qty','price','total_amount','transaction_item_id','product_id']
+
+# # # drop columns
+d_new_df = new_df2.drop(columns=lst_col, axis=1, inplace=False)
+d_new_df
+
+# # Join dataset for EDA
+Eda_df = g_trans_df.merge(d_new_df, how='inner', on='transaction_id')
+
+# # only completed data frame
+Eda_df = Eda_df.loc[Eda_df['Event_name']=='Completed']
+
+# #drop duplicates
+Eda_df = Eda_df.drop_duplicates()
+Eda_df
+
+## 6.A Insight from data
+
+
+### Descriptive Statistic
+
+
+# Data descriptive
+desc_df = Eda_df[['qty', 'total_amount']].describe()
+
+# Add kurtosis, skewness and variance row for data descriptice statistic
+desc_df.loc['kurtosis'] = Eda_df[['qty', 'total_amount']].kurt() #show kurtosis statistic
+desc_df.loc['skewness'] = Eda_df[['qty', 'total_amount']].skew() #show Skewness statistic
+desc_df.loc['variance'] = Eda_df[['qty', 'total_amount']].var() #show variance statistic
+desc_df
+
