@@ -1,0 +1,85 @@
+!pip install gdown
+!gdown https://drive.google.com/uc?id=15EWQ3adcKsWdxIdJdSu9x_msWxbxxz6l
+
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn import cluster
+from silhoutte import silhoutte_analysis
+import seaborn as sns
+from sklearn.preprocessing import MinMaxScaler
+
+# import applications
+sheet_url = '/content/drive/MyDrive/RevoU Labs/Data/applicatios.csv' 
+sheet_url_trf = sheet_url.replace('/edit#gid=', '/export?format=csv&gid=')
+df_applications = pd.read_csv(sheet_url_trf)
+df_applications
+
+# add new coloum Spending to Income
+df_applications = df_applications.assign(
+    spending_to_income = df_applications['expense']/df_applications['income']*100
+)
+df_applications.info()
+
+# import educations
+df_educations = pd.DataFrame({'education_code':[1,2,3,4,5],'education':['Pasca Sarjana', 'Kuliah - Perguruan Tinggi', 'SMA', 'SMP', 'SD']})
+df_educations
+
+# import reasons
+df_reasons = pd.DataFrame({'reason_id':[1,2,3,4,5,6],'reason_for_loan':['Capital', 'Education', 'Emergency', 'Daily Needs', 'Entertainment', 'Loan Payment']})
+df_reasons
+
+# Join Applicant to Education
+df_app_education = df_applications.merge(df_educations, how='left', left_on='education_code', right_on='education_code')
+df_app_education
+
+# Join Applicant_Education to Reasons
+df_app_education_reason = df_app_education.merge(df_reasons, how='left', left_on='reason_id', right_on='reason_id')
+df_app_education_reason
+
+# copy data
+df_cluster = df_app_education_reason.copy()
+
+# convert created_date to time
+df_cluster['created_date'] = pd.to_datetime(df_cluster['created_date'])
+df_cluster.info()
+
+numerical_column = ['spending_to_income', 'education_code', 'reason_id']
+
+fig, axes = plt.subplots(nrows=2, ncols=4, figsize=(20,10))
+axes_flatten = axes.flatten();
+
+print(axes.shape);
+print(axes_flatten.shape);
+
+for i, el in enumerate(numerical_column):
+    a = df_cluster.boxplot(el, ax=axes_flatten[i],grid=False)
+plt.show()
+
+scaler = MinMaxScaler()
+df_cluster[numerical_column] = scaler.fit_transform(df_cluster[numerical_column])
+df_cluster
+
+df_cluster = df_cluster.drop(['created_date','applications_id','user_id','income', 'expense', 'education', 'reason_for_loan'],axis=1)
+
+distortions = []
+K = range(1,9)
+for k in K:
+    kmeanModel = cluster.KMeans(n_clusters=k)
+    kmeanModel.fit(df_cluster)
+    distortions.append(kmeanModel.inertia_)
+
+plt.figure(figsize=(16,8))
+plt.plot(K, distortions, 'bx-')
+plt.xlabel('k')
+plt.ylabel('Inertia')
+plt.title('The Elbow Method showing the optimal k')
+plt.show()
+
+silhoutte_analysis(df_cluster,[3,4,5,6,7,8])
+
+cluster_model = cluster.KMeans(n_clusters=7, random_state=3)
+cluster_label = cluster_model.fit_predict(df_cluster)
+df['cluster'] = cluster_label
+df
