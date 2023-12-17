@@ -1,4 +1,4 @@
--- 01. write a query to find count of application drop between each stage until loan disbursed (happy path). which of the following statements is true regarding the result of the query? JAWABAN : A
+-- write a query to find count of application drop between each stage until loan disbursed (happy path). which of the following statements is true regarding the result of the query?
 
 WITH 
   applicant as
@@ -17,7 +17,7 @@ FROM applicant
 GROUP BY 1
 ORDER BY 1
 
--- 02. write a query to find the average waiting time (in days) from the application created to the loan disbursed. when today is 02 Feb 2023. Which of the following statements is true regarding the result of the query? Jawaban : B
+-- write a query to find the average waiting time (in days) from the application created to the loan disbursed. when today is 02 Feb 2023. Which of the following statements is true regarding the result of the query?
 
 WITH
   date_1 as
@@ -49,7 +49,7 @@ SELECT
   ROUND(AVG(DATE_DIFF(date2, date1, DAY)),2) as average_days
 FROM colab
 
--- 03. write a query to find the document verification success rate per quarter in 2022. Which of the following statements is true regarding the result of the query? Jawaban : B dan (c)
+-- write a query to find the document verification success rate per quarter in 2022. Which of the following statements is true regarding the result of the query?
 
 WITH
   raw_data as
