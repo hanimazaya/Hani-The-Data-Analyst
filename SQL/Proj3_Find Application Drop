@@ -1,0 +1,80 @@
+-- 01. write a query to find count of application drop between each stage until loan disbursed (happy path). which of the following statements is true regarding the result of the query? JAWABAN : A
+
+WITH 
+  applicant as
+  (
+    SELECT
+      t1.applications_id as id,
+      t2.applications_codes as codes,
+    FROM `da-labs-b4-fintech.b4_fintech_dataset.applications` t1
+    LEFT JOIN `da-labs-b4-fintech.b4_fintech_dataset.application_histories` t2
+    ON t1.applications_id = t2.application_id
+  )
+SELECT
+  codes,
+  count(codes) as total_app
+FROM applicant
+GROUP BY 1
+ORDER BY 1
+
+-- 02. write a query to find the average waiting time (in days) from the application created to the loan disbursed. when today is 02 Feb 2023. Which of the following statements is true regarding the result of the query? Jawaban : B
+
+WITH
+  date_1 as
+  (
+    SELECT 
+      application_id,
+      DATE(created_date) as date1
+    FROM `da-labs-b4-fintech.b4_fintech_dataset.application_histories`
+    WHERE applications_codes = 200
+  ),
+  date_2 as
+  (
+    SELECT
+      application_id, 
+      DATE(created_date) as date2
+    FROM `da-labs-b4-fintech.b4_fintech_dataset.application_histories`
+    WHERE applications_codes = 280
+  ),
+  colab as
+  (
+    SELECT
+      *
+    FROM date_1
+    INNER JOIN date_2
+    ON date_1.application_id = date_2.application_id
+  )
+
+SELECT
+  ROUND(AVG(DATE_DIFF(date2, date1, DAY)),2) as average_days
+FROM colab
+
+-- 03. write a query to find the document verification success rate per quarter in 2022. Which of the following statements is true regarding the result of the query? Jawaban : B dan (c)
+
+WITH
+  raw_data as
+  (
+    SELECT
+      EXTRACT(YEAR FROM created_date) as year,
+      EXTRACT(QUARTER FROM created_date) as quarter,
+      applications_codes,
+      COUNT(DISTINCT application_id) as total_app
+    FROM `da-labs-b4-fintech.b4_fintech_dataset.application_histories` 
+    GROUP BY 1,2,3
+    ORDER BY 1,2,3
+  ),
+  growth_data as
+  (
+    SELECT *,
+      LAG(total_app) OVER (ORDER BY row_num) as previous_quarter
+    FROM
+      (SELECT *, ROW_NUMBER() OVER(ORDER BY year, quarter ASC) as row_num FROM raw_data)
+    ORDER BY 1,2,3)
+
+SELECT
+  quarter,
+  total_app,
+  ROUND((((total_app - previous_quarter)/ previous_quarter)*100),2) as percentage_growth
+FROM growth_data
+WHERE year = 2022
+AND applications_codes = 220
