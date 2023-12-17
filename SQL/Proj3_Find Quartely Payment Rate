@@ -1,4 +1,4 @@
---01) write a query to find the quarterly payment rate in 2020 for the C credit score. JAWABAN: A dan B
+--write a query to find the quarterly payment rate in 2020 for the C credit score.
 SELECT
   ROUND(SUM(paid_amount)/SUM(due_amount),2) as payment_rate,
   t2.credit_score,
@@ -11,7 +11,7 @@ AND credit_score = 'C'
 GROUP BY 2,3
 ORDER BY quarter 
 
---02) write a query to find the quartely first payment on-time rate per credit score in 2022. JAWABAN: A dan B
+-- write a query to find the quartely first payment on-time rate per credit score in 2022. 
 SELECT
   ROUND(COUNT(CASE WHEN payment_status_code = 430 THEN t1.loan_id ELSE NULL END)/COUNT(t1.loan_id),2) as payment_ontime_rate,
   t1.payment_number,
@@ -26,7 +26,7 @@ AND credit_score = 'C'
 GROUP BY 2,3,4
 ORDER BY quarter
 
---03) write a query to find the top 3 payment methods per credit score. JAWABAN: B dan C
+-- write a query to find the top 3 payment methods per credit score.
 SELECT 
   t1.credit_score,
   t2.payment_method_id, 
